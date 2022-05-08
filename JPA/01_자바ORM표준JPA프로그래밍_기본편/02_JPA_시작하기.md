@@ -10,15 +10,11 @@ h2/bin/h2.sh 실행
 
 ![image-20220506203541291](images/image-20220506203541291.png)
 
-
-
 ## 메이븐
 
 * 자바 라이브러리, 빌드 관리
 * 라이브러리 자동 다운로드 및 의존성 관리
 * 최근에는 gradle을 많이 사용하나 여기서는 maven을 사용
-
-
 
 ## 프로젝트 생성
 
@@ -28,7 +24,6 @@ h2/bin/h2.sh 실행
     * groupId**: jpa-basic **
     * artifactId**: ex1-hello-jpa **
     * version: 1.0.0
-
 
 
 * 라이브러리 추가 - pom.xml
@@ -82,8 +77,8 @@ h2/bin/h2.sh 실행
 * JPA 설정하기 - persistence.xml
     * JPA 설정 파일
     * /META-INF/persistence.xml 위치
-    * persistence-unit name으로 이름 지정 
-    * javax.persistence로 시작: JPA 표준 속성 
+    * persistence-unit name으로 이름 지정
+    * javax.persistence로 시작: JPA 표준 속성
     * hibernate로 시작: 하이버네이트 전용 속성
 
 ``` xml
@@ -111,17 +106,11 @@ h2/bin/h2.sh 실행
 
 * dialect : DB마다 문법이 조금씩 다르기 때문에 이를 지정해주면 orm에 맞춰 raw sql을 지정한 dialect에 맞게 매핑해준다.
 
-
-
-
-
 # 02. Hello JPA - 애플리케이션 개발
 
 ## JPA 구동 방식
 
 ![image-20220507170106083](images/image-20220507170106083.png)
-
-
 
 ## 객체와 테이블을 생성하고 매핑하기
 
@@ -159,9 +148,6 @@ public class Member {
 * @Entity : JPA가 관리할 객체
 * @Id : 데이터베이스 PK와 매핑
 
-
-
-
 ```sql
 create table Member ( 
     id bigint not null,
@@ -169,8 +155,6 @@ create table Member (
     primary key (id)
 );
 ```
-
-
 
 ### 테스트
 
@@ -205,29 +189,23 @@ public class JpaMain {
 }
 ```
 
-
-
 ## 주의
 
 * 엔티티 매니저 팩토리는 하나만 생성해서 애플리케이션 전체에서 공유
 * 엔티티 매니저는 쓰레드간에 공유 X
 * JPA의 모든 데이터 변경은 트랜잭션 안에서 실행
 
-
-
-
-
 ## JPQL
 
 * JPA를 사용하면 엔티티 객체를 중심으로 개발
-* 검색을 할 때도 테이블이 아닌 엔티티 객체를 대상으로 검색 
+* 검색을 할 때도 테이블이 아닌 엔티티 객체를 대상으로 검색
 * 모든 DB 데이터를 객체로 변환해서 검색하는 것은 불가능
 * 애플리케이션이 필요한 데이터만 DB에서 불러오려면 결국 검 색 조건이 포함된 SQL이 필요
 
 * JPA는 SQL을 추상화한 JPQL이라는 객체 지향 쿼리 언어 제공
 
 * SQL과 문법 유사, SELECT, FROM, WHERE, GROUP BY, HAVING, JOIN 지원
-*  JPQL은 엔티티 객체를 대상으로 쿼리 
+* JPQL은 엔티티 객체를 대상으로 쿼리
 * SQL은 데이터베이스 테이블을 대상으로 쿼리
 
 ``` java
