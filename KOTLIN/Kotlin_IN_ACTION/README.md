@@ -1,8 +1,6 @@
 # Kotlin in ACTION
 
-[Kotlin in ACTION]: http://www.yes24.com/Product/Goods/55148593
-
-위 도서를 학습하고 내용을 정리합니다.
+[Kotlin in ACTION](http://www.yes24.com/Product/Goods/55148593 ) 도서(Kotlin 1.6 대응 버전)를 학습하고 내용을 정리합니다.
 
 
 
