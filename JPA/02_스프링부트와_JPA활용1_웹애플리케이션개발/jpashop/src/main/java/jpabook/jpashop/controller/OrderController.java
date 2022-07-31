@@ -1,6 +1,6 @@
 package jpabook.jpashop.controller;
 
-import jpabook.jpashop.Repository.OrderSearch;
+import jpabook.jpashop.repository.OrderSearch;
 import jpabook.jpashop.domain.Member;
 import jpabook.jpashop.domain.Order;
 import jpabook.jpashop.domain.item.Item;
@@ -12,7 +12,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import javax.persistence.PreUpdate;
 import java.util.List;
 
 @Controller
