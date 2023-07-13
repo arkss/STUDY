@@ -443,8 +443,6 @@ JSP도 코드의 일부는 비즈니스 로직이, 일부는 결과를 HTML로 �
 
 ``` java
 package hello.servlet.web.servletmvc;
-import hello.servlet.domain.member.Member;
-import hello.servlet.domain.member.MemberRepository;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -452,21 +450,15 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.List;
 
-@WebServlet(name = "mvcMemberListServlet", urlPatterns = "/servlet-mvc/members")
-public class MvcMemberListServlet extends HttpServlet {
-    private MemberRepository memberRepository = MemberRepository.getInstance();
-
+@WebServlet(name = "mvcMemberFormServlet", urlPatterns = "/servlet-mvc/members/new-form")
+public class MvcMemberFormServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        System.out.println("MvcMemberListServlet.service");
-        List<Member> members = memberRepository.findAll();
-        request.setAttribute("members", members);
 
-        String viewPath = "/WEB-INF/views/members.jsp";
-        RequestDispatcher dispatcher = request.getRequestDispatcher(viewPath);
-        dispatcher.forward(request, response);
+         String viewPath = "/WEB-INF/views/new-form.jsp";
+         RequestDispatcher dispatcher = request.getRequestDispatcher(viewPath);
+         dispatcher.forward(request, response);
     }
 }
 ```
