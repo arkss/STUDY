@@ -309,14 +309,396 @@ new FieldError("item", "price", item.getPrice(), false, new String[] {"range.ite
 
 ## 오류 코드와 메시지 처리2
 
+### FieldError , ObjectError 생성 없이 사용하는 BindingResult
+
+BindingResult 는 검증해야 할 객체인 target 바로 다음에 온다. 따라서 BindingResult 는 이미 본인이 검증해야 할 객체인 target 을 알고 있다.
+
+``` java
+log.info("objectName={}",bindingResult.getObjectName());
+log.info("target={}", bindingResult.getTarget());
+```
+
+```
+objectName=item //@ModelAttribute의 name
+target=Item(id=null, itemName=상품, price=100, quantity=1234)
+```
+
+
+
+BindingResult의 rejectValue()와 reject()를 사용하면 FieldError , ObjectError를 생성하지 않고 더 깔끔하게 검증 오류를 다룰 수 있다.
+
+
+
+### rejectValue()
+
+``` java
+void rejectValue(@Nullable String field, String errorCode,@Nullable Object[] errorArgs, @Nullable String defaultMessage);
+```
+
+* field : 오류 필드명
+* errorCode : 오류 코드(이 오류 코드는 메시지에 등록된 코드가 아니다. 뒤에서 설명할 messageResolver를 위한 오류 코드이다.)
+* errorArgs : 오류 메시지에서 {0} 을 치환하기 위한 값
+* defaultMessage : 오류 메시지를 찾을 수 없을 때 사용하는 기본 메시지
+
+
+
+``` java
+bindingResult.rejectValue("price", "range", new Object[]{1000, 1000000}, null)
+```
+
+BindingResult는 어떤 객체를 대상으로 검증하는지 target을 이미 알고 있기 때문에 위와 같이 target의 field만 받아서 사용할 수 있다.
+
+
+
 ## 오류 코드와 메시지 처리3
+
+오류 코드를 만들 때는 자세히 만들 수 도 있고 단순히 만들 수 도 있다.
+
+* required.item.itemName : 상품 이름은 필수 입니다.
+* required : 필수 값 입니다.
+
+
+
+required라는 오류 코드를 사용한다고 하면 해당 오류 코드와 객체명, 필드명을 조합한 세밀한 메시지를 먼저 찾고 없으면 오류 코드의 메시지를 사용한다.
+
+``` 
+# 우선순위 1
+required.item.itemName : 상품 이름은 필수 입니다.
+
+# 우선순위 2
+required : 필수 값 입니다.
+```
+
+
+
+이 경우, 메시지 properties만 변경하여 메시지를 변경할 수 있다.
+
+
 
 ## 오류 코드와 메시지 처리4
 
+### MessageCodesResolverTest
+
+``` java
+package hello.itemservice.validation;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.validation.DefaultMessageCodesResolver;
+import org.springframework.validation.MessageCodesResolver;
+
+public class MessageCodesResolverTest {
+
+  MessageCodesResolver codesResolver = new DefaultMessageCodesResolver();
+
+  @Test
+  void messageCodesResolverObject() {
+    String[] messageCodes = codesResolver.resolveMessageCodes("required", "item");
+    assertThat(messageCodes).containsExactly("required.item", "required");
+  }
+
+  @Test
+  void messageCodesResolverField() {
+    String[] messageCodes = codesResolver.resolveMessageCodes("required", "item", "itemName", String.class);
+
+    assertThat(messageCodes).containsExactly(
+        "required.item.itemName",
+        "required.itemName",
+        "required.java.lang.String",
+        "required"
+    );
+  }
+}
+```
+
+
+
+### DefaultMessageCodesResolver의 메시지 생성 규칙
+
+#### 객체 오류
+
+```
+객체 오류의 경우 다음 순서로 2가지 생성 
+1.: code + "." + object name 
+2.: code
+
+예) 오류 코드: required, object name: item 
+1.: required.item
+2.: required
+```
+
+
+
+#### 필드 오류
+
+```
+필드 오류의 경우 다음 순서로4가지 메시지 코드 생성
+1.: code + "." + object name + "." + field
+2.: code + "." + field
+3.: code + "." + field type
+4.: code
+
+예) 오류 코드: typeMismatch, object name "user", field "age", field type: int 
+1. "typeMismatch.user.age"
+2. "typeMismatch.age"
+3. "typeMismatch.int"
+4. "typeMismatch"
+```
+
+
+
+### 동작 방식
+
+rejectValue(), reject()는 내부에서 MessageCodesResolver를 사용하고 여기서 메시지 코드들을 생성한다.
+
+
+
 ## 오류 코드와 메시지 처리5
+
+모든 오류 코드에 대해서 메시지를 각각 다 정의하면 개발자 입장에서 관리하기 너무 힘들다.
+
+크게 중요하지 않은 메시지는 범용성 있는 required 같은 메시지로 끝내고 정말 중요한 메시지는 꼭 필요할 때 구체적으로 적어서 사용하는 방식이 더 효과적이다.
+
+
+
+errors.properties
+
+``` properties
+#required.item.itemName=상품 이름은 필수입니다. 
+#range.item.price=가격은 {0} ~ {1} 까지 허용합니다. 
+#max.item.quantity=수량은 최대 {0} 까지 허용합니다. 
+#totalPriceMin=가격 * 수량의 합은 {0}원 이상이어야 합니다. 현재 값 = {1}
+
+#==ObjectError==
+#Level1
+totalPriceMin.item=상품의 가격 * 수량의 합은 {0}원 이상이어야 합니다. 현재 값 = {1}
+#Level2 - 생략
+totalPriceMin=전체 가격은 {0}원 이상이어야 합니다. 현재 값 = {1}
+
+#==FieldError==
+#Level1
+required.item.itemName=상품 이름은 필수입니다. 
+range.item.price=가격은 {0} ~ {1} 까지 허용합니다. 
+max.item.quantity=수량은 최대 {0} 까지 허용합니다.
+
+#Level2 - 생략
+
+#Level3
+required.java.lang.String = 필수 문자입니다. 
+required.java.lang.Integer = 필수 숫자입니다. 
+min.java.lang.String = {0} 이상의 문자를 입력해주세요. 
+min.java.lang.Integer = {0} 이상의 숫자를 입력해주세요. 
+range.java.lang.String = {0} ~ {1} 까지의 문자를 입력해주세요. 
+range.java.lang.Integer = {0} ~ {1} 까지의 숫자를 입력해주세요. 
+max.java.lang.String = {0} 까지의 문자를 허용합니다. 
+max.java.lang.Integer = {0} 까지의 숫자를 허용합니다.
+
+#Level4
+required = 필수 값 입니다.
+min= {0} 이상이어야 합니다.
+range= {0} ~ {1} 범위를 허용합니다. max= {0} 까지 허용합니다.
+```
+
+
+
+### ValidationUtils
+
+#### ValidationUtils 사용 전
+
+``` java
+if (!StringUtils.hasText(item.getItemName())) {
+  bindingResult.rejectValue("itemName", "required", "기본: 상품 이름은 필수입니다."); 
+}
+```
+
+
+
+#### ValidationUtils 사용 후
+
+``` java
+ValidationUtils.rejectIfEmptyOrWhitespace(bindingResult, "itemName", "required");
+```
+
+
+
+### 정리
+
+1. rejectValue() 호출
+2. MessageCodesResolver 를 사용해서 검증 오류 코드로 메시지 코드들을 생성
+
+3. new FieldError() 를 생성하면서 메시지 코드들을 보관
+4. th:erros 에서 메시지 코드들로 메시지를 순서대로 메시지에서 찾고, 노출
+
+
 
 ## 오류 코드와 메시지 처리6
 
+### 스프링이 직접 만드는 오류 메시지 처리
+
+item object의 price 필드에 문자열을 입력하면 다음과 같이 스프링이 생성한 기본 메시지가 출력된다.
+
+``` 
+ailed to convert property value of type java.lang.String to required type java.lang.Integer for property price; nested exception is java.lang.NumberFormatException: For input string: "A"
+```
+
+
+
+스프링은 직접 아래와 같은 메시지 코드를 추가한다.
+
+* typeMismatch.item.price 
+* typeMismatch.price 
+* typeMismatch.java.lang.Integer 
+* typeMismatch
+
+
+
+이를 해결하기 위해 errors.properties에 이를 덮어쓰도록 한다.
+
+``` properties
+typeMismatch.java.lang.Integer=숫자를 입력해주세요. 
+typeMismatch=타입 오류입니다.
+```
+
+
+
 ## Validator 분리1
 
+### ItemValidator
+
+ItemValidator을 만들어 검증 로직을 분리하자.
+
+``` java
+package hello.itemservice.web.validation;
+
+import hello.itemservice.domain.item.Item;
+import org.springframework.stereotype.Component;
+import org.springframework.validation.Errors;
+import org.springframework.validation.ValidationUtils;
+import org.springframework.validation.Validator;
+
+@Component
+public class ItemValidator implements Validator {
+
+  @Override
+  public boolean supports(Class<?> clazz) {
+    return Item.class.isAssignableFrom(clazz);
+  }
+
+  @Override
+  public void validate(Object target, Errors errors) {
+    Item item = (Item) target;
+
+    ValidationUtils.rejectIfEmptyOrWhitespace(errors, "itemName", "required");
+
+    if (item.getPrice() == null || item.getPrice() < 1000 || item.getPrice() > 1000000) {
+      errors.rejectValue("price", "range", new Object[]{1000, 1000000}, null);
+    }
+
+    if (item.getQuantity() == null || item.getQuantity() > 10000) {
+      errors.rejectValue("quantity", "max", new Object[]{9999}, null);
+    }
+
+    //특정 필드 예외가 아닌 전체 예외
+    if (item.getPrice() != null && item.getQuantity() != null) {
+      int resultPrice = item.getPrice() * item.getQuantity();
+      if (resultPrice < 10000) {
+        errors.reject("totalPriceMin", new Object[]{10000, resultPrice}, null);
+      }
+    }
+  }
+}
+
+```
+
+
+
+스프링은 검증을 체계적으로 제공하기 위해 다음 인터페이스를 제공한다.
+
+``` java
+public interface Validator {
+    boolean supports(Class<?> clazz);
+    void validate(Object target, Errors errors);
+}
+```
+
+* supports() {} : 해당 검증기를 지원하는 여부 확인(뒤에서 설명)
+* validate(Object target, Errors errors) : 검증 대상 객체와BindingResult
+
+
+
+Controller에서 아래와 같이 호출하면 된다.
+
+``` java
+private final ItemValidator itemValidator;
+
+@PostMapping("/add")
+public String addItemV5(@ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes) {
+  itemValidator.validate(item, bindingResult);
+  
+  // 성공 로직
+}
+```
+
+
+
 ## Validator 분리2
+
+스프링 Validator 인터페이스를 사용하면 스프링의 추가적인 도움을 받을 수 있다.
+
+### WebDataBinder
+
+WebDataBinder는 스프링의 파라미터 바인딩의 역할을 해주고 검증 기능도 내부에 포함한다.
+
+controller에 아래 코드와 @Validated를 추가하면 동일하게 동작한다.
+
+``` java
+@InitBinder
+public void init(WebDataBinder dataBinder) {
+  dataBinder.addValidators(itemValidator);
+}
+
+@PostMapping("/add")
+public String addItemV6(@Validated @ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes) {}
+```
+
+
+
+### @Validated 
+
+이는 검증기를 실행하라는 애노테이션이다. 여러 검증기의 supports()를 사용하여 적절한 검증기를 찾아낸다.
+
+검증 시, @Validated와 @Valid 둘 다 사용가능하다. 
+
+javax.validation.@Valid 를 사용하려면 build.gradle 의존관계 추가가 필요하다.
+
+* implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+@Validated 는 스프링 전용 검증 애노테이션이고, @Valid 는 자바 표준 검증 애노테이션이다.
+
+
+
+### 글로벌 설정
+
+각각의 controller가 아닌 글로벌하게 validator를 설정할 수 있다.
+
+``` java
+import hello.itemservice.web.validation.ItemValidator;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@SpringBootApplication
+public class ItemServiceApplication implements WebMvcConfigurer {
+
+  public static void main(String[] args) {
+    SpringApplication.run(ItemServiceApplication.class, args);
+  }
+
+  @Override
+  public Validator getValidator() {
+    return new ItemValidator();
+  }
+}
+```
+
